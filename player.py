@@ -6,6 +6,7 @@ PLAYER_SIZE = 20
 PLAYER_SPEED = 5
 PLAYER_COLOR = (0, 0, 255)  # Blue
 BLACK = (0, 0, 0)
+GREEN = (0, 255, 0)
 
 class Player:
     def __init__(self, x, y, world_width, world_height):
@@ -34,7 +35,7 @@ class Player:
         pos = camera.apply((self.x, self.y))
         pygame.draw.rect(pygame.display.get_surface(), PLAYER_COLOR, (pos[0], pos[1], self.size, self.size))
         health_width = (self.size * self.health) // 3
-        pygame.draw.rect(pygame.display.get_surface(), BLACK, (pos[0], pos[1] - 10, health_width, 5))
+        pygame.draw.rect(pygame.display.get_surface(), GREEN, (pos[0], pos[1] - 10, health_width, 5))
 
     def get_center(self):
         return (self.x + self.size/2, self.y + self.size/2)
@@ -63,7 +64,6 @@ class Player:
                     bullets.append((center[0], center[1], base_angle + angle_offset, 'orange', phase))
             return bullets
         return []
-
 
     def take_damage(self):
         self.health -= 1

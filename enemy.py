@@ -5,13 +5,15 @@ import pygame
 
 # Enemy-specific configurations
 ENEMY_SIZE = 40
-ENEMY_HEALTH = 3
+ENEMY_HEALTH = 1
 ENEMY_COLOR = (255, 0, 0)  # Red
 HEALTH_COLOR = (0, 255, 0)  # Green for health bar
 
 # Drops
 DROP_COLOR = (255, 105, 180)  # Pink for drop
 DROP_SIZE = 20  # Medium-size circle
+ENEMY_IMAGE = None
+
 
 class Enemy:
     def __init__(self, x, y):
@@ -25,6 +27,15 @@ class Enemy:
         self.random_walk_timer = 0
         self.random_angle = random.uniform(0, 2 * math.pi)
         self.dodge_cooldown = 0
+    
+    ENEMY_IMAGE = None
+
+    @classmethod
+    def load_sprite(cls):
+        if cls.ENEMY_IMAGE is None:
+            cls.ENEMY_IMAGE = pygame.image.load("boar.png").convert_alpha()
+            cls.ENEMY_IMAGE = pygame.transform.scale(cls.ENEMY_IMAGE, (ENEMY_SIZE, ENEMY_SIZE))
+        return cls.ENEMY_IMAGE
 
     def aim_at_player(self, player):
         dx = player.x + player.size/2 - (self.x + self.size/2)
@@ -69,10 +80,13 @@ class Enemy:
         self.y = max(0, min(self.y + dy, world_height - self.size))
 
     def draw(self, camera):
+        if Enemy.ENEMY_IMAGE is None:
+            Enemy.load_sprite()  # Load sprite if not loaded
         pos = camera.apply((self.x, self.y))
-        pygame.draw.rect(pygame.display.get_surface(), ENEMY_COLOR, (pos[0], pos[1], self.size, self.size))
+        screen = pygame.display.get_surface()
+        screen.blit(Enemy.ENEMY_IMAGE, (pos[0], pos[1]))
         health_width = (self.size * self.health) // ENEMY_HEALTH
-        pygame.draw.rect(pygame.display.get_surface(), HEALTH_COLOR, (pos[0], pos[1] - 10, health_width, 5))
+        pygame.draw.rect(screen, HEALTH_COLOR, (pos[0], pos[1] - 10, health_width, 5))
 
     def spawn_drop(self):
         if random.random() < 0.9:  # 10% chance

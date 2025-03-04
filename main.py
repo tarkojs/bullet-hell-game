@@ -17,7 +17,9 @@ HEIGHT = 800
 WORLD_WIDTH = 1600  # Larger world dimensions
 WORLD_HEIGHT = 1200
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Bullet Hell Game with Camera")
+background_image = pygame.image.load("imeg.png").convert()  # Load image
+background_image = pygame.transform.scale(background_image, (WORLD_WIDTH, WORLD_HEIGHT))  # Scale to world size
+pygame.display.set_caption("Stellantis")
 
 # Colors
 WHITE = (255, 255, 255)
@@ -27,7 +29,7 @@ GREEN = (0, 255, 0)
 BLACK = (0, 0, 0)
 PURPLE = (128, 0, 128)  # Purple color
 ORANGE = (255, 165, 0)
-ENEMY_AMOUNT = 50
+ENEMY_AMOUNT = 10
 
 # Camera class
 class Camera:
@@ -53,32 +55,63 @@ class Projectile:
         self.x = x
         self.y = y
         self.base_angle = angle
-        self.speed = 7 + (2 if color == 'purple' else 5 if color == 'orange' else 0)  # Base + increment
-        self.radius = 5
-        self.color = ORANGE if color == 'orange' else (PURPLE if color == 'purple' else GREEN)
+        self.speed = 7 + (2 if color == 'purple' else 5 if color == 'orange' else 0)
+        self.radius = 5  # Used for collision, not drawing
+        self.color = color
         self.phase = phase
         self.time = 0
 
     def move(self):
-        if self.color == 'orange':  # Sinusoidal for level 3+
-            self.time += 0.1
-            oscillation = math.sin(self.time + self.phase) * (self.speed / 20)  # Scale amplitude with speed
+        if self.color == 'orange':
+            self.time += 0.7
+            oscillation = math.sin(self.time + self.phase) * (self.speed / 20)
             angle = self.base_angle + oscillation
             self.x += math.cos(angle) * self.speed
             self.y += math.sin(angle) * self.speed
-        else:  # Straight for level 1-2
+        else:
             self.x += math.cos(self.base_angle) * self.speed
             self.y += math.sin(self.base_angle) * self.speed
 
     def draw(self, camera):
         pos = camera.apply((self.x, self.y))
-        pygame.draw.circle(screen, self.color, (int(pos[0]), int(pos[1])), self.radius)
+        if self.color == 'green':
+            screen.blit(BULLET_GREEN, (pos[0] - 5, pos[1] - 5))  # Center on position
+        elif self.color == 'purple':
+            screen.blit(BULLET_PURPLE, (pos[0] - 5, pos[1] - 5))
+        elif self.color == 'orange':
+            screen.blit(BULLET_ORANGE, (pos[0] - 5, pos[1] - 5))
 
+class DamageText:
+    def __init__(self, x, y, text, color):
+        self.x = x
+        self.y = y
+        self.text = text
+        self.color = color
+        self.lifetime = 60  # Frames (1 second at 60 FPS)
+        self.speed = -2  # Move upwards
 
-# Enemy class
+    def update(self):
+        self.y += self.speed  # Move up
+        self.lifetime -= 1
+        return self.lifetime > 0  # Return True if still alive
+
+    def draw(self, camera):
+        pos = camera.apply((self.x, self.y))
+        text_surface = pygame.font.Font(None, 36).render(self.text, True, self.color)
+        screen.blit(text_surface, pos)
+
+def load_bullet_sprites():
+    global BULLET_GREEN, BULLET_PURPLE, BULLET_ORANGE
+    BULLET_GREEN = pygame.image.load("bullet_green.png").convert_alpha()
+    BULLET_PURPLE = pygame.image.load("bullet_purple.png").convert_alpha()
+    BULLET_ORANGE = pygame.image.load("bullet_orange.png").convert_alpha()
+    BULLET_GREEN = pygame.transform.scale(BULLET_GREEN, (40, 40))
+    BULLET_PURPLE = pygame.transform.scale(BULLET_PURPLE, (20, 20))
+    BULLET_ORANGE = pygame.transform.scale(BULLET_ORANGE, (20, 20))
 
 # Game function
 def game_loop():
+    load_bullet_sprites()
     player = Player(WORLD_WIDTH//2, WORLD_HEIGHT - 100, WORLD_WIDTH, WORLD_HEIGHT)
     enemies = Enemy.spawn_enemies(ENEMY_AMOUNT, WORLD_WIDTH, WORLD_HEIGHT)
     camera = Camera(player)
@@ -87,6 +120,7 @@ def game_loop():
     drops = []  # Track active drops
     message = None  # For "Stellanator unlocked"
     message_timer = 3  # Display duration
+    damage_texts = []
     clock = pygame.time.Clock()
     game_won = False
     game_lost = False
@@ -155,7 +189,10 @@ def game_loop():
                         if enemy.health <= 0:
                             enemies.remove(enemy)
                             exp += 100
-                            player.health += 1  # Health gain on kill
+                            old_health = player.health
+                            #player.health += 1
+                            if player.health > old_health:  # Ensure health increased
+                                damage_texts.append(DamageText(player.x + player.size/2, player.y, "+1", GREEN))  # Green "+1" above player
                             drop = enemy.spawn_drop()
                             if drop:
                                 drops.append(drop)
@@ -164,7 +201,7 @@ def game_loop():
                     to_remove.append(p)
             for p in set(to_remove):  # Remove duplicates
                 projectiles.remove(p)
-            game_won = len(enemies) == -100  # Fix win condition
+            game_won = len(enemies) == 0  # Fix win condition
 
             enemy_bullets = [b for b in enemy_bullets if 0 <= b.x <= WORLD_WIDTH and 0 <= b.y <= WORLD_HEIGHT]
 
@@ -175,6 +212,8 @@ def game_loop():
                 if player_rect.colliderect(drop_rect):
                     drops.remove(drop)
                     player.weapon_level += 1  # Upgrade to level 2
+                    damage_texts.append(DamageText(player.x + player.size/2, player.y, "+1", GREEN))
+                    player.health += 1
                     message = f"Stellanator level {player.weapon_level} unlocked"
                     message_timer = 120  # Show for 2 seconds at 60 FPS
             
@@ -184,10 +223,23 @@ def game_loop():
                 if player_rect.collidepoint(b.x, b.y):
                     if player.take_damage():
                         game_lost = True
+                    else:
+                        damage_texts.append(DamageText(player.x + player.size/2, player.y, "-1", RED))  # Red "-1" above player
                     enemy_bullets.remove(b)
 
         # Draw everything
-        screen.fill(WHITE)
+
+        bg_x = -camera.x % WORLD_WIDTH  # Tile horizontally
+        bg_y = -camera.y % WORLD_HEIGHT  # Tile vertically
+        screen.blit(background_image, (bg_x, bg_y))
+        # Tile additional sections if camera exceeds image bounds
+        if bg_x > 0:
+            screen.blit(background_image, (bg_x - WORLD_WIDTH, bg_y))
+        if bg_y > 0:
+            screen.blit(background_image, (bg_x, bg_y - WORLD_HEIGHT))
+        if bg_x > 0 and bg_y > 0:
+            screen.blit(background_image, (bg_x - WORLD_WIDTH, bg_y - WORLD_HEIGHT))
+
         player.draw(camera)
         for enemy in enemies:
             enemy.draw(camera)
@@ -197,6 +249,11 @@ def game_loop():
             b.draw(camera)
         for drop in drops:
             drop.draw(camera)
+        for text in damage_texts[:]:
+            if not text.update():  # Remove if lifetime expired
+                damage_texts.remove(text)
+            else:
+                text.draw(camera)
 
         if message and message_timer > 0:
             font = pygame.font.Font(None, 36)
@@ -205,13 +262,31 @@ def game_loop():
             screen.blit(text, text_rect)
             message_timer -= 1
 
-        font = pygame.font.Font(None, 36)
-        hp_text = font.render(f"HP: {player.health}", True, BLACK)
-        exp_text = font.render(f"EXP: {exp}", True, BLACK)
-        bullets_text = font.render(f"Bullets: {bullets_shot}", True, BLACK)
-        screen.blit(hp_text, (10, 10))  # HP at top-left
-        screen.blit(exp_text, (10, 40))  # EXP below HP
-        screen.blit(bullets_text, (10, 70))  # Bullets below EXP
+        font = pygame.font.Font(None, 48)  # Larger font for "HP"
+        # HP bar (upper-right corner, reducing width, red at 1 HP)
+        hp_box_width = 200
+        hp_box_height = 50
+        hp_box_x = WIDTH - hp_box_width - 10  # 10 pixels from right edge
+        hp_box_y = 10  # 10 pixels from top
+        max_health = 5  # Player can take 5 hits
+        health_ratio = player.health / max_health
+        bar_color = RED if player.health == 1 else GREEN  # Red at 1 HP, green otherwise
+        bar_width = int(hp_box_width * health_ratio)  # Reduce width based on health
+        # Draw dark gray outline first (sleek and thin, 2 pixels)
+        outline_color = (50, 50, 50)  # Dark gray
+        outline_width = 2
+        pygame.draw.rect(screen, outline_color, (hp_box_x - outline_width, hp_box_y - outline_width, hp_box_width + 2 * outline_width, hp_box_height + 2 * outline_width), outline_width)
+        # Draw health bar inside outline
+        pygame.draw.rect(screen, bar_color, (hp_box_x, hp_box_y, bar_width, hp_box_height))
+        # "HP" on left side of bar, larger text
+        hp_label = font.render("HP", True, BLACK)
+        screen.blit(hp_label, (hp_box_x + 10, hp_box_y + (hp_box_height - hp_label.get_height()) // 2))  # Center vertically
+        # Keep EXP and Bullets in top-left
+        exp_font = pygame.font.Font(None, 36)  # Smaller font for other stats
+        exp_text = exp_font.render(f"EXP: {exp}", True, BLACK)
+        bullets_text = exp_font.render(f"Bullets: {bullets_shot}", True, BLACK)
+        screen.blit(exp_text, (10, 10))  # EXP at top-left
+        screen.blit(bullets_text, (10, 40))  # Bullets below EXP
 
         if game_won:
             font = pygame.font.Font(None, 74)
