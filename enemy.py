@@ -42,7 +42,7 @@ class Enemy:
     @classmethod
     def load_sprite(cls):
         if cls.ENEMY_IMAGE is None:
-            cls.ENEMY_IMAGE = pygame.image.load("boar.png").convert_alpha()
+            cls.ENEMY_IMAGE = pygame.image.load('sprites/enemies/boar.png').convert_alpha()
             cls.ENEMY_IMAGE = pygame.transform.scale(cls.ENEMY_IMAGE, (ENEMY_SIZE, ENEMY_SIZE))
         return cls.ENEMY_IMAGE
     
@@ -275,7 +275,7 @@ class BabyBoar:
     @classmethod
     def load_baby_sprite(cls):
         if cls.BABY_BOAR_IMAGE is None:
-            cls.BABY_BOAR_IMAGE = pygame.image.load("baby_boar.png").convert_alpha()
+            cls.BABY_BOAR_IMAGE = pygame.image.load('sprites/enemies/baby_boar.png').convert_alpha()
             cls.BABY_BOAR_IMAGE = pygame.transform.scale(cls.BABY_BOAR_IMAGE, (40, 40))  # Smaller size
         return cls.BABY_BOAR_IMAGE
 

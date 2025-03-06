@@ -17,7 +17,7 @@ HEIGHT = 800
 WORLD_WIDTH = 1600  # Larger world dimensions
 WORLD_HEIGHT = 1200
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-background_image = pygame.image.load("imeg.png").convert()  # Load image
+background_image = pygame.image.load('background.png').convert()  # Load image
 background_image = pygame.transform.scale(background_image, (WORLD_WIDTH, WORLD_HEIGHT))  # Scale to world size
 pygame.display.set_caption("Stellantis")
 
@@ -75,7 +75,7 @@ class Projectile:
     def draw(self, camera):
         pos = camera.apply((self.x, self.y))
         if self.color == 'green':
-            screen.blit(BULLET_GREEN, (pos[0] - 5, pos[1] - 5))  # Center on position
+            screen.blit(BULLET_MAIN, (pos[0] - 5, pos[1] - 5))  # Center on position
         elif self.color == 'purple':
             screen.blit(BULLET_PURPLE, (pos[0] - 5, pos[1] - 5))
         elif self.color == 'orange':
@@ -101,11 +101,11 @@ class DamageText:
         screen.blit(text_surface, pos)
 
 def load_bullet_sprites():
-    global BULLET_GREEN, BULLET_PURPLE, BULLET_ORANGE
-    BULLET_GREEN = pygame.image.load("bullet_green.png").convert_alpha()
-    BULLET_PURPLE = pygame.image.load("bullet_purple.png").convert_alpha()
-    BULLET_ORANGE = pygame.image.load("bullet_orange.png").convert_alpha()
-    BULLET_GREEN = pygame.transform.scale(BULLET_GREEN, (40, 40))
+    global BULLET_MAIN, BULLET_PURPLE, BULLET_ORANGE
+    BULLET_MAIN = pygame.image.load('sprites/projectiles/bullet_main.png').convert_alpha()
+    BULLET_PURPLE = pygame.image.load('sprites/projectiles/bullet_main.png').convert_alpha()
+    BULLET_ORANGE = pygame.image.load('sprites/projectiles/bullet_main.png').convert_alpha()
+    BULLET_MAIN = pygame.transform.scale(BULLET_MAIN, (40, 40))
     BULLET_PURPLE = pygame.transform.scale(BULLET_PURPLE, (20, 20))
     BULLET_ORANGE = pygame.transform.scale(BULLET_ORANGE, (20, 20))
 
