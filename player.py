@@ -16,10 +16,10 @@ class Player:
         self.size = PLAYER_SIZE
         self.world_width = world_width
         self.world_height = world_height
-        self.health = 50  # Player can take 5 hits
+        self.health = 5  # Player can take 5 hits
         self.weapon_level = 1  # Start at level 1
         self.shield_active = False  # Track shield state
-        self.shield_radius = 30  # Distance from player
+        self.shield_radius = 25  # Distance from player
         self.shield_width = 20  # Shield width
         self.shield_height = 40  # Shield height (taller for shield shape)
 
@@ -79,10 +79,10 @@ class Player:
         dy = world_my - self.y
         angle = math.atan2(dy, dx)
         # Shield position relative to player, rotated to face cursor
-        shield_x = self.x + self.shield_radius * math.cos(angle + math.pi)  # Behind player
-        shield_y = self.y + self.shield_radius * math.sin(angle + math.pi)
+        shield_x = self.x + self.shield_radius * math.cos(angle)  # Behind player
+        shield_y = self.y + self.shield_radius * math.sin(angle)
         # Rotate shield to face cursor, maintaining shield shape
-        angle_deg = math.degrees(angle + math.pi)  # Flip to face away from player
+        angle_deg = math.degrees(angle)  # Flip to face away from player
         shield_rect = pygame.Rect(shield_x - self.shield_width/2, shield_y - self.shield_height/2, self.shield_width, self.shield_height)
         return shield_rect, angle_deg, angle
     
@@ -93,7 +93,7 @@ class Player:
             shield_surface = pygame.Surface((self.shield_width, self.shield_height), pygame.SRCALPHA)
             pygame.draw.rect(shield_surface, (100, 100, 255, 128), (0, 0, self.shield_width, self.shield_height))
             rotated_shield = pygame.transform.rotate(shield_surface, -angle_deg)
-            pos = camera.apply((self.x + self.shield_radius * math.cos(angle + math.pi), self.y + self.shield_radius * math.sin(angle + math.pi)))
+            pos = camera.apply((self.x + self.shield_radius * math.cos(angle), self.y + self.shield_radius * math.sin(angle)))
             screen.blit(rotated_shield, (pos[0] - rotated_shield.get_width()/2, pos[1] - rotated_shield.get_height()/2))
 
     def take_damage(self, damage=1):

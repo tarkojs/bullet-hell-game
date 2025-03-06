@@ -117,6 +117,7 @@ def game_loop():
     camera = Camera(player)
     projectiles = []
     enemy_bullets = []
+    child_bullets = []
     drops = []  # Track active drops
     message = None  # For "Stellanator unlocked"
     message_timer = 3  # Display duration
@@ -172,9 +173,13 @@ def game_loop():
                     bullets_shot += 1
                 spam_timer = 5
             
-            for enemy in enemies[:]:  # Use copy to allow removal
-                enemy.move(projectiles, WORLD_WIDTH, WORLD_HEIGHT)  # Pass world bounds
+            for enemy in enemies[:]:
+                enemy.move(projectiles, WORLD_WIDTH, WORLD_HEIGHT, player)
                 enemy_bullets.extend(enemy.shoot(player))
+
+            for enemy in enemies[:]:
+                for baby in enemy.babies:
+                    child_bullets.extend(baby.shoot(player))
             
             projectiles = [p for p in projectiles if 0 <= p.x <= WORLD_WIDTH and 0 <= p.y <= WORLD_HEIGHT]
             to_remove = []  # Collect projectiles to remove
@@ -230,7 +235,7 @@ def game_loop():
             for b in enemy_bullets:
                 b.move()
                 player_rect = pygame.Rect(player.x, player.y, player.size, player.size)
-                shield_rect, _, _ = player.get_shield_rect((mx, my), camera)
+                shield_rect, _, _ = player.get_shield_rect((mx, my), camera)  # Unpack all three values
                 if shield_rect and shield_rect.collidepoint(b.x, b.y):
                     # Set origin before reflecting
                     if b.origin_x is None or b.origin_y is None:
@@ -242,6 +247,29 @@ def game_loop():
                     else:
                         damage_texts.append(DamageText(player.x + player.size/2, player.y, f"-{b.damage}", RED))
                     enemy_bullets.remove(b)
+
+            # After enemy_bullets handling:
+            child_bullets = [b for b in child_bullets if 0 <= b.x <= WORLD_WIDTH and 0 <= b.y <= WORLD_HEIGHT]
+            for b in child_bullets[:]:
+                b.move()
+                # Skip collision with source baby and its mother
+                if hasattr(b, 'source'):
+                    baby_rect = pygame.Rect(b.source.x, b.source.y, b.source.size, b.source.size)
+                    mother_rect = pygame.Rect(b.source.mother.x, b.source.mother.y, b.source.mother.size, b.source.mother.size)
+                    if baby_rect.collidepoint(b.x, b.y) or mother_rect.collidepoint(b.x, b.y):
+                        continue  # Skip this bullet for now to avoid self-collision
+                shield_rect, _, _ = player.get_shield_rect((mx, my), camera)
+                if shield_rect and shield_rect.collidepoint(b.x, b.y):
+                    dx = b.x - (player.x + player.size/2)
+                    dy = b.y - (player.y + player.size/2)
+                    b.angle = math.atan2(dy, dx)
+                    b.speed *= 1.3
+                elif player_rect.collidepoint(b.x, b.y):
+                    if player.take_damage(b.damage):
+                        game_lost = True
+                    else:
+                        damage_texts.append(DamageText(player.x + player.size/2, player.y, f"-{b.damage}", RED))
+                    child_bullets.remove(b)
 
         # Draw everything
 
@@ -263,6 +291,8 @@ def game_loop():
         for p in projectiles:
             p.draw(camera)
         for b in enemy_bullets:
+            b.draw(camera)
+        for b in child_bullets:
             b.draw(camera)
         for drop in drops:
             drop.draw(camera)
