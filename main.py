@@ -4,7 +4,7 @@ import time
 import random
 
 from player import Player
-from enemy import Enemy, EnemyBullet
+from enemy import Enemy, EnemyBullet, BabyBoar
 
 pygame.font.init()
 
@@ -29,7 +29,7 @@ GREEN = (0, 255, 0)
 BLACK = (0, 0, 0)
 PURPLE = (128, 0, 128)  # Purple color
 ORANGE = (255, 165, 0)
-ENEMY_AMOUNT = 10
+ENEMY_AMOUNT = 1
 
 # Camera class
 class Camera:
@@ -181,6 +181,7 @@ def game_loop():
             for p in projectiles[:]:
                 p.move()
                 hit = False  # Track if projectile hit something
+                # Check enemy collisions
                 for enemy in enemies[:]:
                     enemy_rect = pygame.Rect(enemy.x, enemy.y, enemy.size, enemy.size)
                     if enemy_rect.collidepoint(p.x, p.y):
@@ -190,18 +191,27 @@ def game_loop():
                             enemies.remove(enemy)
                             exp += 100
                             old_health = player.health
-                            #player.health += 1
-                            if player.health > old_health:  # Ensure health increased
-                                damage_texts.append(DamageText(player.x + player.size/2, player.y, "+1", GREEN))  # Green "+1" above player
+                            player.health += 1
+                            if player.health > old_health:
+                                damage_texts.append(DamageText(player.x + player.size/2, player.y, "+1", GREEN))
                             drop = enemy.spawn_drop()
                             if drop:
                                 drops.append(drop)
                         break  # Only hit one enemy per projectile
+                # Check baby collisions
+                for mother in enemies[:]:
+                    for baby in mother.babies[:]:
+                        baby_rect = pygame.Rect(baby.x, baby.y, baby.size, baby.size)
+                        if baby_rect.collidepoint(p.x, p.y):
+                            if baby.take_damage():
+                                mother.babies.remove(baby)
+                            hit = True
+                            break  # Only hit one baby per projectile
                 if hit:
-                    to_remove.append(p)
+                    to_remove.append(p)  # Mark for removal
             for p in set(to_remove):  # Remove duplicates
                 projectiles.remove(p)
-            game_won = len(enemies) == 0  # Fix win condition
+            game_won = len(enemies) == 0
 
             enemy_bullets = [b for b in enemy_bullets if 0 <= b.x <= WORLD_WIDTH and 0 <= b.y <= WORLD_HEIGHT]
 
@@ -220,11 +230,17 @@ def game_loop():
             for b in enemy_bullets:
                 b.move()
                 player_rect = pygame.Rect(player.x, player.y, player.size, player.size)
-                if player_rect.collidepoint(b.x, b.y):
-                    if player.take_damage():
+                shield_rect, _, _ = player.get_shield_rect((mx, my), camera)
+                if shield_rect and shield_rect.collidepoint(b.x, b.y):
+                    # Set origin before reflecting
+                    if b.origin_x is None or b.origin_y is None:
+                        b.origin_x, b.origin_y = b.x, b.y
+                    b.move(reflected=True)
+                elif player_rect.collidepoint(b.x, b.y):
+                    if player.take_damage(b.damage):
                         game_lost = True
                     else:
-                        damage_texts.append(DamageText(player.x + player.size/2, player.y, "-1", RED))  # Red "-1" above player
+                        damage_texts.append(DamageText(player.x + player.size/2, player.y, f"-{b.damage}", RED))
                     enemy_bullets.remove(b)
 
         # Draw everything
@@ -241,6 +257,7 @@ def game_loop():
             screen.blit(background_image, (bg_x - WORLD_WIDTH, bg_y - WORLD_HEIGHT))
 
         player.draw(camera)
+        player.draw_shield((mx, my), camera)
         for enemy in enemies:
             enemy.draw(camera)
         for p in projectiles:
@@ -254,6 +271,8 @@ def game_loop():
                 damage_texts.remove(text)
             else:
                 text.draw(camera)
+        
+        mx, my = pygame.mouse.get_pos()
 
         if message and message_timer > 0:
             font = pygame.font.Font(None, 36)
