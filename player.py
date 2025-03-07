@@ -8,6 +8,7 @@ PLAYER_COLOR = (0, 0, 255)  # Blue
 BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
 
+
 class Player:
     def __init__(self, x, y, world_width, world_height):
         self.x = x

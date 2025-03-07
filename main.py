@@ -2,6 +2,7 @@ import pygame
 import math
 import time
 import random
+import asyncio
 
 from player import Player
 from enemy import Enemy, EnemyBullet, BabyBoar
@@ -17,9 +18,9 @@ HEIGHT = 800
 WORLD_WIDTH = 1600  # Larger world dimensions
 WORLD_HEIGHT = 1200
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-background_image = pygame.image.load('background.png').convert()  # Load image
+background_image = pygame.image.load('sprites/background.png').convert()  # Load image
 background_image = pygame.transform.scale(background_image, (WORLD_WIDTH, WORLD_HEIGHT))  # Scale to world size
-pygame.display.set_caption("Stellantis")
+pygame.display.set_caption("Boardom")
 
 # Colors
 WHITE = (255, 255, 255)
@@ -49,7 +50,7 @@ class Camera:
         # Apply camera offset to object positions
         return (pos[0] - self.x, pos[1] - self.y)
 
-# Projectile class (for player bullets)
+# Projectile class
 class Projectile:
     def __init__(self, x, y, angle, color='green', phase=0):
         self.x = x
@@ -109,9 +110,8 @@ def load_bullet_sprites():
     BULLET_PURPLE = pygame.transform.scale(BULLET_PURPLE, (20, 20))
     BULLET_ORANGE = pygame.transform.scale(BULLET_ORANGE, (20, 20))
 
-# Game function
-def game_loop():
-    load_bullet_sprites()
+async def game_loop():
+    load_bullet_sprites()  # Load assets before the loop
     player = Player(WORLD_WIDTH//2, WORLD_HEIGHT - 100, WORLD_WIDTH, WORLD_HEIGHT)
     enemies = Enemy.spawn_enemies(ENEMY_AMOUNT, WORLD_WIDTH, WORLD_HEIGHT)
     camera = Camera(player)
@@ -133,7 +133,7 @@ def game_loop():
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return False
+                running = False
             if event.type == pygame.MOUSEBUTTONDOWN and not (game_won or game_lost):
                 mx, my = pygame.mouse.get_pos()
                 # Convert screen coordinates to world coordinates
@@ -145,7 +145,7 @@ def game_loop():
                 projectiles.append(Projectile(player.x + player.size/2, player.y + player.size/2, angle))
                 bullets_shot += 1  # Increment bullet count
             if event.type == pygame.KEYDOWN and (game_won or game_lost) and event.key == pygame.K_SPACE:
-                return True
+                running = False
 
         if not (game_won or game_lost):
             keys = pygame.key.get_pressed()
@@ -154,7 +154,6 @@ def game_loop():
 
             mx, my = pygame.mouse.get_pos()
             spam_timer -= 1
-            # In main.py, update this part in game_loop():
             if keys[pygame.K_SPACE] and spam_timer <= 0:
                 bullet_data = player.shoot_spam((mx, my), camera)
                 for data in bullet_data:
@@ -172,7 +171,7 @@ def game_loop():
                         projectiles.append(Projectile(x, y, angle))
                     bullets_shot += 1
                 spam_timer = 5
-            
+
             for enemy in enemies[:]:
                 enemy.move(projectiles, WORLD_WIDTH, WORLD_HEIGHT, player)
                 enemy_bullets.extend(enemy.shoot(player))
@@ -180,7 +179,7 @@ def game_loop():
             for enemy in enemies[:]:
                 for baby in enemy.babies:
                     child_bullets.extend(baby.shoot(player))
-            
+
             projectiles = [p for p in projectiles if 0 <= p.x <= WORLD_WIDTH and 0 <= p.y <= WORLD_HEIGHT]
             to_remove = []  # Collect projectiles to remove
             for p in projectiles[:]:
@@ -231,8 +230,8 @@ def game_loop():
                     player.health += 1
                     message = f"Stellanator level {player.weapon_level} unlocked"
                     message_timer = 120  # Show for 2 seconds at 60 FPS
-            
-            for b in enemy_bullets:
+
+            for b in enemy_bullets[:]:
                 b.move()
                 player_rect = pygame.Rect(player.x, player.y, player.size, player.size)
                 shield_rect, _, _ = player.get_shield_rect((mx, my), camera)  # Unpack all three values
@@ -272,7 +271,6 @@ def game_loop():
                     child_bullets.remove(b)
 
         # Draw everything
-
         bg_x = -camera.x % WORLD_WIDTH  # Tile horizontally
         bg_y = -camera.y % WORLD_HEIGHT  # Tile vertically
         screen.blit(background_image, (bg_x, bg_y))
@@ -301,7 +299,7 @@ def game_loop():
                 damage_texts.remove(text)
             else:
                 text.draw(camera)
-        
+
         mx, my = pygame.mouse.get_pos()
 
         if message and message_timer > 0:
@@ -350,12 +348,10 @@ def game_loop():
 
         pygame.display.flip()
         clock.tick(60)
+        await asyncio.sleep(0)  # Yield control to browser
 
     return False
 
-# Main game loop
-running = True
-while running:
-    running = game_loop()
-
-pygame.quit()
+# Entry point
+if __name__ == "__main__":
+    asyncio.run(game_loop())
