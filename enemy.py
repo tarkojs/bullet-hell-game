@@ -560,10 +560,13 @@ class BabyFibonacciEnemy:
     def _teleport_random(self, world_width, world_height):
         self.teleport_count += 1
         if self.teleport_count == 1:
+            angle = random.uniform(0, 2 * math.pi)
+            self.x += math.cos(angle) * 50
+            self.y += math.sin(angle) * 50
             # First teleport: move to a common location to create overlap
             # Use a fixed location that all babies will teleport to
-            self.x = world_width // 2 - self.size // 2
-            self.y = world_height // 2 - self.size // 2
+            #self.x = world_width // 2 - self.size // 2
+            #self.y = world_height // 2 - self.size // 2
         else:
             # Subsequent teleports: random direction
             angle = random.uniform(0, 2 * math.pi)
@@ -663,10 +666,17 @@ class FibonacciEnemy:
         self.health -= damage
         self.damage_texts.append(DamageText(self.x + self.size/2, self.y, f"-{damage}", RED))
         if self.health <= 0:
-            # Prepare babies to spawn on death
-            self.children_to_spawn = [
-                BabyFibonacciEnemy(self.x + self.size/2, self.y + self.size/2) for _ in range(3)
-            ]
+            # Prepare babies to spawn with randomized offsets
+            self.children_to_spawn = []
+            for _ in range(3):
+                # Random offset within a radius of 1.5 * size
+                angle = random.uniform(0, 2 * math.pi)
+                distance = random.uniform(self.size * 0.5, self.size * 1.5)
+                offset_x = math.cos(angle) * distance
+                offset_y = math.sin(angle) * distance
+                spawn_x = self.x + self.size/2 + offset_x
+                spawn_y = self.y + self.size/2 + offset_y
+                self.children_to_spawn.append(BabyFibonacciEnemy(spawn_x, spawn_y))
             return True
         return False
 

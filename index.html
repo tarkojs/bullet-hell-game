@@ -306,17 +306,73 @@ config = {
             font-family: arial;
             margin: 0;
             padding: none;
-            background-color:powderblue;
+            background-color: powderblue;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
-        .topright{
-           position:absolute;
-           top:0px;
-           right:0px;
+        .game-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .loading-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .control-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .key {
+            background: #e0e0e0;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .topright {
+            position: absolute;
+            top: 0px;
+            right: 0px;
         }
 
         .bottomright {
-            position:absolute;
+            position: absolute;
             top: 40%;
             right: 0px;
         }
@@ -327,17 +383,17 @@ config = {
             justify-content: center;
         }
 
-        .trinfo{
-           position:relative;
-           right:0px;
-           border: 1px solid black;
+        .trinfo {
+            position: relative;
+            right: 0px;
+            border: 1px solid black;
         }
 
-        .framed{
-           position:relative;
-           top:150px;
-           right:10px;
-           border: 1px solid black;
+        .framed {
+            position: relative;
+            top: 150px;
+            right: 10px;
+            border: 1px solid black;
         }
     </style>
 
@@ -346,8 +402,36 @@ config = {
 </head>
 
 <body>
+    <div class="game-container">
+        <div class="loading-screen" id="loading">
+            <h2>Loading Boardom...</h2>
+            <div id="progress"></div>
+            <div id="status"></div>
+        </div>
 
-    <div id="transfer" align=center>
+        <div class="controls">
+            <h3>Controls</h3>
+            <div class="controls-grid">
+                <div class="control-item">
+                    <span class="key">WASD</span>
+                    <span>Move</span>
+                </div>
+                <div class="control-item">
+                    <span class="key">Mouse</span>
+                    <span>Aim & Shoot</span>
+                </div>
+                <div class="control-item">
+                    <span class="key">Space</span>
+                    <span>Speed Boost</span>
+                </div>
+                <div class="control-item">
+                    <span class="key">S</span>
+                    <span>Shield</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="transfer" align=center>
 <!--        <div class="spinner" id='spinner'></div> -->
         <div class="emscripten" id="status">Downloading...</div>
         <div class="emscripten">
